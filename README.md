@@ -1,2 +1,2 @@
-# Self-Development
-Self development on statistical analyses with R, Python and Stata
+# Training & Development
+Training on statistical analyses with R, Python and Stata
