@@ -1,0 +1,52 @@
+---
+title: "Untitled"
+author: "Peter"
+date: "2/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = F,comment = F,message = F,results = 'asis')
+rm(list = ls())
+```
+
+```{r}
+q1<-c(2,2,3,3,3,1,4,4,5,5)
+q2<-c(2,3,3,4,4,1,4,5,5,5)
+q3<-c(2,2,2,3,4,1,4,5,5,5)
+df<-data.frame(q1,q2,q3)
+
+library(expss)
+
+# Add varaible and value labels
+df %<>% apply_labels(q1 = "Question 1",
+                     q2 = "Question 2",
+                     q3 = "Question 3",
+                     q1 = c("strongly agree" = 5, "agree" = 4, "neutral" = 3, "disagree" = 2, "strongly disagree" = 1),
+                     q2 = c("strongly agree" = 5, "agree" = 4, "neutral" = 3, "disagree" = 2, "strongly disagree" = 1),
+                     q3 = c("strongly agree" = 5, "agree" = 4, "neutral" = 3, "disagree" = 2, "strongly disagree" = 1))
+
+
+
+# Now for the table
+res = df
+for(each in colnames(df)){
+    res = res %>% 
+        tab_cells(total(label = "|")) %>% # suppress total label
+        tab_cols(unvr(vars(each))) %>%  # remove variable label 
+        tab_stat_rpct(total_row_position = "none", label = var_lab(vars(each)))   # use variable label as statistic label
+      
+}
+res = res  %>% tab_pivot() 
+# add percentage sign
+recode(res[,-1]) = other ~ function(x) ifelse(is.na(x), "0%", paste0(round(x, 0), "%"))
+ detach("package:expss", unload = TRUE)
+library(dplyr)
+library(kableExtra)
+res2 <- res %>% mutate(Means=colMeans(df),SD= round(apply(df, 2, sd),2))
+res2 %>% kable(caption = "Here is the table") %>% kable_styling(full_width = F,"hover")
+ 
+  
+
+```
+
