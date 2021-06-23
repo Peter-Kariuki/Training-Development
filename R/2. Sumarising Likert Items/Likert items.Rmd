@@ -1,16 +1,18 @@
 ---
-title: "Untitled"
+title: "Analysis of Likert Items"
 author: "Peter"
 date: "2/12/2021"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
+# chunk setup:
 knitr::opts_chunk$set(echo = TRUE,warning = F,comment = F,message = F,results = 'asis')
 rm(list = ls())
 ```
 
 ```{r}
+# hypthetical psychometric data
 q1<-c(2,2,3,3,3,1,4,4,5,5)
 q2<-c(2,3,3,4,4,1,4,5,5,5)
 q3<-c(2,2,2,3,4,1,4,5,5,5)
@@ -28,7 +30,7 @@ df %<>% apply_labels(q1 = "Question 1",
 
 
 
-# Now for the table
+# Creating the percentages and mean/SD table
 res = df
 for(each in colnames(df)){
     res = res %>% 
