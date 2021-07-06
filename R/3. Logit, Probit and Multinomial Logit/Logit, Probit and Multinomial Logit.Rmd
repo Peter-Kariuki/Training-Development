@@ -1,0 +1,111 @@
+---
+title: "Logit, Probit and Multinomial Logit models in R"
+"
+author: "Peter Kariuki"
+date: "7/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(foreign)
+mydata <- read.dta("https://dss.princeton.edu/training/Panel101.dta") 
+```
+
+```{r}
+# Running a logit model
+logit <- glm(y_bin ~ x1 + x2 + x3, family=binomial(link="logit"), data=mydata)
+```
+
+```{r}
+summary(logit)
+```
+
+```{r}
+# The stargazer() function from the package –stargazer allows a publication quality of the logit model.
+# The model will be saved in the working directory under the name ‘logit.htm’ which you can open with Word or any other word processor.
+library(stargazer)
+stargazer(logit, type="text", out="logit.htm")
+
+```
+
+
+```{r}
+# Relative risk ratios allow an easier interpretation of the logit coefficients. They are the exponentiated value of the logit coefficients.
+logit.or = exp(coef(logit))
+stargazer(logit, type="text", coef=list(logit.or), p.auto=FALSE)
+```
+
+```{r}
+# Logit model: predicted probabilities
+#Pr(yi = 1) = Logit-1(Xiβ)
+#Pr(yi = 1) = Logit-1(0.4261935 + 0.8617722*x1 + 0.3665348*x2 + 0.7512115*x3 )
+invlogit = function (x) {1/(1+exp(-x))}
+
+invlogit(coef(logit)[1]+
+ coef(logit)[2]*mean(mydata$x1)+
+ coef(logit)[3]*mean(mydata$x2)+
+ coef(logit)[4]*mean(mydata$x3))
+
+
+```
+
+```{r}
+#Adding categorical variable, the model would be:
+logit.cat <- glm(y_bin ~ x1 + x2 + x3 + opinion, family=binomial(link="logit"), data=mydata)
+coef(logit.cat)
+
+#Estimate Pr(yi = 1| opinion= “Agree”)
+invlogit(coef(logit.cat)[1]+
+ coef(logit.cat)[2]+
+ coef(logit.cat)[3]+
+ coef(logit.cat)[4]+
+ coef(logit.cat)[5]*1)
+
+```
+
+```{r}
+# Logit model: marginal effects
+library(mfx)
+logitmfx(y_bin ~ x1+x2+x3, data=mydata)
+```
+
+
+```{r}
+#Ordinal logit model
+# Getting sample data
+library(foreign)
+# Loading library –MASS
+library(MASS)
+# Running the ordered logit model
+m1 <- polr(opinion ~ x1 + x2 + x3, data=mydata, Hess=TRUE)
+stargazer(m1, type="text")
+
+# Odds ratios
+m1.or=exp(coef(m1))
+stargazer(m1, type="text", coef=list(m1.or), p.auto=FALSE)
+```
+
+
+```{r}
+# Multinomial logit model
+library(nnet)
+mydata = read.table('https://stats.idre.ucla.edu/wp-content/uploads/2016/02/hsb2-2.csv', header=T, sep=",")
+# Checking the output (dependent) variable
+
+mydata$ses <- factor(mydata$ses, labels=c("low", "middle", "high")) 
+table(mydata$ses)
+
+# By default the first category is the reference.
+# To change it so ‘middle’ is the reference type
+mydata$ses2 = relevel(mydata$ses, ref = "middle")
+
+# Running the multinomial logit model using the multinom() function
+multi1 = multinom(ses2 ~ science + socst + female, data=mydata)
+multi1.rrr = exp(coef(multi1))
+stargazer(multi1, type="text", coef=list(multi1.rrr), p.auto=FALSE)
+```
+
