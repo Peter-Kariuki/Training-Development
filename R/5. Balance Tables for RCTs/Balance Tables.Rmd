@@ -1,0 +1,35 @@
+---
+title: "Untitled"
+author: "Peter Kariuki"
+date: "7/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A balance table helps you check how covariates/potential controls looks like across the treatments. If there is a significant difference (Imbalance) then you need to control for those covariates when checking treatments causal effects.
+```{r}
+
+data2 <-data.frame(x1 = rnorm(n = 100, mean = 100, sd = 15), 
+                  x2=rnorm(n = 100, mean = 65), 
+                  treatment = sample(c("Control","Treatment"),100,replace = T),
+                  gender=sample(c("Male", "Female"),100,replace = T),
+                  education=sample(c("Primary","Secondary","Tertialy"),100,replace = T),
+                  gender_imb=rep(c("Male","Female"),times=c(80,20)))
+
+
+library(vtable)
+data2 %>% 
+  sumtable(group = "treatment",group.test = T)
+
+
+
+
+
+
+
+
+```
+
