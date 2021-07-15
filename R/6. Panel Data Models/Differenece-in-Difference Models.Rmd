@@ -1,0 +1,147 @@
+---
+title: "Panel Dataa Models"
+author: "Peter Kariuki"
+date: "7/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,comment = F,warning = F,message = F,results = 'asis')
+```
+
+## Recap
+Difference -in-differences models involves before and after comparisos in natural experiments to determine the effect of a treatment.
+It is used in *quasi-experiments*, i.e when treatment assignment is not random
+
+
+
+Difference-in-Difference Model:
+Y=B0+B1*Time+B2*Treatment+B3*Time*Treatment+u
+
+Estimating regression at baseline, Time=0
+Y=B0+B2*Treatment+u
+This shows the difference in outcomes between the treated and control units at baseline.
+
+Estimating regression in at the endline, Time=1
+Y=B0+B2*Time+B3*Treatment+u
+
+The coefficient (B3) shows the difference in outcomes between the treated and the control units at the endline
+
+The DID effect is the difference between the two differences above, i.e 
+(B0+B2+B3)-(B0+B2)
+This is the difference in outcomes between treated and control units at baseline and the treated and control units at the endline.
+
+```{r}
+# Install packages
+PackageNames <- c("tidyverse", "stargazer", "magrittr", "haven")
+for(i in PackageNames){
+  if(!require(i, character.only = T)){
+    install.packages(i, dependencies = T)
+    require(i, character.only = T)
+  }
+}
+```
+
+Parallel Trends Assumption
+
+```{r,echo=FALSE}
+# initialize plot and add control group
+plot(c(0, 1), c(6, 8), 
+     type = "p",
+     ylim = c(5, 12),
+     xlim = c(-0.5, 1.5),
+     main = "The Differences-in-Differences Estimator",
+     xlab = "Period",
+     ylab = "Y",
+     col = "steelblue",
+     pch = 20,
+     xaxt = "n",
+     yaxt = "n")
+
+axis(1, at = c(0, 1), labels = c("Baseline", "Endline"))
+axis(2, at = c(0, 13))
+
+# add treatment group
+points(c(0, 1, 1), c(7, 9, 11), 
+       col = "darkred",
+       pch = 20)
+
+# add line segments
+lines(c(0, 1), c(7, 11), col = "darkred")
+lines(c(0, 1), c(6, 8), col = "steelblue")
+lines(c(0, 1), c(7, 9), col = "darkred", lty = 2)
+lines(c(1, 1), c(9, 11), col = "black", lty = 2, lwd = 2)
+
+# add annotations
+text(1, 10, expression(hat(beta)[3]^{DID}), cex = 0.8, pos = 4)
+text(0, 5.5, "E[Y|Treatment=Control]", cex = 0.8 , pos = 4)
+text(0, 6.8, "E[Y|Treatment=Treatment]", cex = 0.8 , pos = 4)
+text(1, 7.9, "E[Y|Treatment=Control]", cex = 0.8 , pos = 4)
+text(1, 11.1, "E[Y|Treatment=Treatment]", cex = 0.8 , pos = 4)
+```
+
+
+
+
+```{r}
+# House prices example
+# DID effect of building an incinerator on house prices
+directory <-here::here("6. Panel Data Models")
+KIELMC <- read.csv("KIELMC.csv")
+
+# Explore variables of interest
+KIELMC %>% 
+  select(rprice, nearinc,y81,y81nrinc) %>% 
+  stargazer(type = "html")
+
+```
+
+```{r}
+# Summarize house prices near and far from incinerator, and before and after
+KIELMC %>% 
+  group_by(nearinc, y81) %>%
+  summarize_at(.vars = vars(rprice), 
+               .funs = list(mean = mean, obs = length)) %>% 
+  kableExtra::kable() %>% kableExtra::kable_styling("hover",full_width = F)
+```
+
+```{r}
+# Regressionat endline (after building the incinerator)
+model1 <- lm(formula = rprice ~ nearinc, 
+             data = KIELMC, 
+             subset = (year == 1981))
+#summary(model1)
+(b1 <- coef(model1)["nearinc"])
+```
+
+```{r}
+# Regression at baseline (before building the incinerator)
+model2 <- update(model1, subset = (year == 1978))
+#summary(model2)
+(b2 <- coef(model2)["nearinc"])
+```
+
+```{r}
+# Difference-in-differences effect
+b1 - b2
+```
+
+```{r}
+# Difference-in-differences regression 
+# includes treated, after, and after*treated
+model3 <- lm(rprice ~ nearinc + y81 + y81*nearinc, KIELMC)
+#summary(model3)
+coef(model3)["nearinc:y81"]
+# DID effect is the coefficient on after*treated
+# DID effect is same as the difference-in-differences calculated above
+```
+
+```{r}
+stargazer(model1,model2,model3,type="html",align = T, covariate.labels=c("Price Near Incinerator","Year","Interaction","Constant"))
+
+library(equatiomatic)
+extract_eq(model3,intercept = "beta",wrap = TRUE, terms_per_line = 2,ital_vars = TRUE)
+
+extract_eq(model3,intercept = "beta",wrap = TRUE, terms_per_line = 2,ital_vars = TRUE,use_coefs = TRUE)
+```
+
