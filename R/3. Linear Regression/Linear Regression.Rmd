@@ -1,0 +1,74 @@
+---
+title: "Linear Regression"
+author: "Peter Kariuki"
+date: "7/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Dataset is in the following library
+library(car)
+library(tidyverse)
+# We use Prestige data
+?Prestige
+# This data frame contains the following columns:
+# 
+# education
+# Average education of occupational incumbents, years, in 1971.
+# 
+# income
+# Average income of incumbents, dollars, in 1971.
+# 
+# women
+# Percentage of incumbents who are women.
+# 
+# prestige
+# Pineo-Porter prestige score for occupation, from a social survey conducted in the mid-1960s.
+# 
+# census
+# Canadian Census occupational code.
+# 
+# type
+# Type of occupation. A factor with levels (note: out of order): bc, Blue Collar; prof, Professional, Managerial, and Technical; wc, White Collar.
+
+# Explore the data
+
+library(dlookr)
+diagnose(Prestige)
+diagnose_numeric(Prestige) # see that income has outliers
+diagnose_category(Prestige)
+diagnose_outlier(Prestige)
+describe(Prestige)
+normality(Prestige)
+plot_normality(Prestige)
+
+Prestige %>%
+  correlate(-type) %>%
+  filter(as.integer(var1) > as.integer(var2)) %>% 
+  mutate_if(is.numeric, round,digits=2) %>% 
+  spread(var2,coef_corr,fill = "")
+```
+
+```{r}
+# Fit OLS model
+reg1 <- lm(prestige~education+log(income)+women,data=Prestige)
+library(stargazer)
+stargazer(reg1,type="text")
+```
+
+```{r}
+#Linear regression (heteroskedasticity-robust standard errors) 
+library(lmtest)
+library(sandwich)
+reg1$robse <- vcovHC(reg1, type="HC1")
+coeftest(reg1,reg1$robse)
+```
+
+```{r}
+Prestige$type <- with(Prestige, factor(type,blevels=c("bc", "wc", "prof")))
+```
+
