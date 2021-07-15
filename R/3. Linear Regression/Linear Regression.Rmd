@@ -61,14 +61,14 @@ stargazer(reg1,type="text")
 ```
 
 ```{r}
-#Linear regression (heteroskedasticity-robust standard errors) 
-library(lmtest)
+#Linear regression (heteroskedasticity-robust standard errors)
 library(sandwich)
-reg1$robse <- vcovHC(reg1, type="HC1")
-coeftest(reg1,reg1$robse)
+cov <- vcovHC(reg1, type = "HC")
+robust.se <- sqrt(diag(cov))
 ```
 
 ```{r}
-Prestige$type <- with(Prestige, factor(type,blevels=c("bc", "wc", "prof")))
+stargazer(reg1, reg1, se=list(NULL, robust.se),
+column.labels=c("default","robust"), align=TRUE,type = "text")
 ```
 
