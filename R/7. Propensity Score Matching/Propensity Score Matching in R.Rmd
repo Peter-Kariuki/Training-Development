@@ -1,0 +1,177 @@
+---
+title: "Propensity Score Matching"
+author: "Peter Kariuki"
+date: "7/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Recap
+Propensity score matching is used when a group of subjects receive a treatment and we’d like to compare their outcomes with the outcomes of a control group. 
+
+Assignment into treated and control is not random and hence participants in treated and control group may be different making it hard to compare their outcomes directly. Hence we need to match them before comparing. This is called propensity matching
+
+Example: Effect of training program on job performance
+
+PSM Methodology:
++ Assign obs into 2 groups, Treatment (D=1)and Control (D=0) groups
++ Estimate a binary model for them, i.e the propensity/probability of the obs to be assigned to the treated group given a set of predictors
+
+p(x)=prob(D=1|x)=E(D|x)
+
+*propensity score* is the conditional(predicted) probability of receiving treatment given a pre-treatment characteristics x
+
++ Match obs from treated and control groups based on their propensity scores
+Methods available: kernel,nearest neighbor, radius, stratification
+
++ Calculate treatment effects: compare the outcomes y between the treated and control obs after matching
+Average treatment effect: difference between the outcomes of treated and control observation, equivalent to ttest. This is fine for random experiments but in observational studies, it may be biased if treated and control are not similar
+
+Average treatment effect on the treated (ATET)
+-It is the difference between the outcomes of treated and the outcomes of the treated if the had not been treated
+-The second term is counterfactual and that's where propensity scores comes handy
+
+Propensity score method:
+After matching on propensity scores, we can compare the outcomes of treated and control obs since the match of control is equivalent to treated if it had not been treated.
+
+DiD models, which is an improvement of the former
+
+## Project Description
+To analyze the effect of going to Catholic school, as opposed to public school, on student achievement. Because students who attend Catholic school on average are different from students who attend public school, we will use propensity score matching to get more credible causal estimates of Catholic schooling.
+
+
+```{r}
+# Install packages
+rm(list=ls())
+PackageNames <- c("stargazer", "magrittr", "Matching","rbounds","rgenoud","here","MatchIt","tidyverse","conflicted")
+for(i in PackageNames){
+  if(!require(i, character.only = T)){
+    install.packages(i, dependencies = T)
+    require(i, character.only = T)
+  }
+}
+# Prefer over all other packages
+conflict_prefer("filter", "dplyr")
+conflict_prefer("select", "dplyr")
+
+```
+
+
+```{r}
+setwd(here::here("7. Propensity Score Matching"))
+ecls<- read.csv("ecls.csv")
+```
+
+# Difference-in-means: outcome variable
+```{r}
+# Descriptive statistics
+ecls %>%
+  mutate(test = c5r2mtsc) %>% 
+  group_by(catholic) %>%
+  dlookr::describe(test) %>% 
+  select(catholic,n,mean,sd,p25,p50,p75)
+
+ 
+```
+
+```{r}
+with(ecls, t.test(c5r2mtsc ~ catholic))
+```
+
+Check which variables are significantly different within treatments
+
+```{r}
+ecls_cov <- c('race_white', 'p5hmage', 'w3income', 'p5numpla', 'w3momed_hsb',"catholic")
+ecls %>%
+    select(one_of(ecls_cov)) %>%
+  vtable::sumtable(group="catholic",group.test = T)
+```
+
+We estimate the propensity score by running a logit model (probit also works) where the outcome variable is a binary variable indicating treatment status. What covariates should you include? Those that significantly predicts the treatment
+
+
+# Propensity score estimation
+```{r}
+ecls <- ecls %>% mutate(w3income_1k = w3income / 1000)
+m_ps <- glm(catholic ~ race_white + w3income_1k + p5hmage + p5numpla + w3momed_hsb,
+            family = binomial(), data = ecls)
+stargazer(m_ps,type = "text")
+```
+
+
+Using this model, we can now calculate the propensity score for each student. It is simply the student’s predicted probability of being Treated, given the estimates from the logit model. Below, I calculate this propensity score using predict() and create a dataframe that has the propensity score as well as the student’s actual treatment status.
+
+```{r}
+prs_df <- data.frame(pr_score = predict(m_ps, type = "response"),
+                     catholic = m_ps$model$catholic)
+head(prs_df)
+```
+
+# Examining the region of common support
+After estimating the propensity score, it is useful to plot histograms of the estimated propensity scores by treatment status:
+
+```{r}
+labs <- paste("Actual school type attended:", c("Catholic", "Public"))
+prs_df %>%
+  mutate(catholic = ifelse(catholic == 1, labs[1], labs[2])) %>%
+  ggplot(aes(x = pr_score)) +
+  geom_histogram(color = "white") +
+  facet_wrap(~catholic) +
+  xlab("Probability of going to Catholic school") +
+  theme_bw()
+```
+
+
+# Executing a matching algorithm
+
+```{r}
+ecls_nomiss <- ecls %>%  # MatchIt does not allow missing values
+  select(c5r2mtsc, catholic, one_of(ecls_cov)) %>%
+  na.omit()
+
+mod_match <- matchit(catholic ~ race_white + w3income + p5hmage + p5numpla + w3momed_hsb,method = "nearest", data = ecls_nomiss)
+summary(mod_match)
+plot(mod_match)
+```
+
+
+To create a dataframe containing only the matched observations, use the match.data() function:
+
+```{r}
+dta_m <- match.data(mod_match)
+dim(dta_m)
+```
+
+Note that the final dataset is smaller than the original: it contains 2704 observations, meaning that 1352 pairs of treated and control observations were matched. Also note that the final dataset contains a variable called distance, which is the propensity score.
+
+# Examining covariate balance in the matched sample
+We’ll do three things to assess covariate balance in the matched sample:
+
++ visual inspection
++ t-tests of difference-in-means
++ computation of the average absolute standardized difference (“standardized imbalance”)
+
+t-tests
+
+You can test this more formally using t-tests. Ideally, we should not be able to reject the null hypothesis of no mean difference for each covariate:
+```{r}
+dta_m %>%
+  select(one_of(ecls_cov)) %>% 
+  vtable::sumtable(group="catholic",group.test = T)
+```
+
+# Estimating treatment effects
+Estimating the treatment effect is simple once we have a matched sample that we are happy with
+```{r}
+lm_treat1 <- lm(c5r2mtsc ~ catholic, data = dta_m)
+lm_treat2 <- lm(c5r2mtsc ~ catholic + race_white + p5hmage +I(w3income / 10^3) + p5numpla + w3momed_hsb, data = dta_m)
+stargazer(lm_treat1,lm_treat2,type = "text")
+```
+
+
+
+
+
