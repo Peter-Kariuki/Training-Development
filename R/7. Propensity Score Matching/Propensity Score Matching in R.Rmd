@@ -46,16 +46,14 @@ To analyze the effect of going to Catholic school, as opposed to public school, 
 ```{r}
 # Install packages
 rm(list=ls())
-PackageNames <- c("stargazer", "magrittr", "Matching","rbounds","rgenoud","here","MatchIt","tidyverse","conflicted")
+PackageNames <- c("stargazer", "magrittr", "Matching","rbounds","rgenoud","here","MatchIt","tidyverse")
 for(i in PackageNames){
   if(!require(i, character.only = T)){
     install.packages(i, dependencies = T)
     require(i, character.only = T)
   }
 }
-# Prefer over all other packages
-conflict_prefer("filter", "dplyr")
-conflict_prefer("select", "dplyr")
+
 
 ```
 
