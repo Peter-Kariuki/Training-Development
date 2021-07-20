@@ -1,0 +1,62 @@
+---
+title: "Plotting Regression Coefficients"
+author: "Peter Kariuki"
+date: "7/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Install packages
+rm(list=ls())
+PackageNames <- c("stargazer","here","tidyverse","sjPlot","sandwich","broom")
+for(i in PackageNames){
+  if(!require(i, character.only = T)){
+    install.packages(i, dependencies = T)
+    require(i, character.only = T)
+  }
+}
+
+```
+
+```{r}
+data(iris)
+reg1 <- lm(Sepal.Length ~ Sepal.Width + Petal.Length + Species, data = iris)
+cov <- vcovHC(reg1, type = "HC")
+robust.se <- sqrt(diag(cov))
+```
+
+```{r}
+stargazer(reg1, reg1, se=list(NULL, robust.se),
+column.labels=c("default","robust"), align=TRUE,type = "text")
+```
+```{r}
+theme_set(theme_sjplot())
+plot_model(reg1,colors = "Accent", 
+  show.values = TRUE,
+  value.offset = .3,
+  value.size = 3,
+  dot.size = 2,
+  line.size = 0.5,
+  vline.color = "blue",
+  width = 1)
+```
+
+```{r}
+# Here is sample regression
+reg1 <- lm(Sepal.Length ~ Sepal.Width + Petal.Length + Species, data = iris)
+#install broom package
+coef <- broom::tidy(reg1, conf.int = TRUE)
+
+p<-ggplot(coef, aes(term, estimate))+
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()+
+  coord_flip()+
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high))+
+  geom_text(aes(y = estimate, label = round(estimate,2)), colour = "white",position = position_stack(.5),size=3)+
+  labs(title = "Plot of Regression Coefficients")
+
+p
+```
+
