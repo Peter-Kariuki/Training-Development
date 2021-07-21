@@ -1,0 +1,181 @@
+---
+title: "Cluster Analysis: K-Means"
+author: "Peter"
+date: "10/29/2019"
+output: html_document
+---
+Notes: Partitioning clustering are clustering methods used to classify observations, within a data set, into multiple groups based on their similarity. The algorithms require the analyst to specify the number of clusters to be generated
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Install packages and load
+rm(list=ls())
+PackageNames <- c("stargazer","cluster","factoextra","NbClust","tidyverse","fpc","clValid")
+for(i in PackageNames){
+  if(!require(i, character.only = T)){
+    install.packages(i, dependencies = T)
+    require(i, character.only = T)
+  }
+}
+
+```
+
+K-means clustering : each cluster is represented by the center or means of the data points belonging to the cluster. The K-means method is sensitive to anomalous data points and outliers.
+
+ How the algorithm works:
+ 1. The analyst pre-specifies the number of clusters, k
+ 2. The algorithm starts by randomly k data points and entreats them as the mean/centroids
+ 3.Each of remaining data points are assigned to it's closest centroid
+ 4. Set the position of the cluster to the mean of the data points belonging to that cluster
+ 5. With the new means/ centroids, assign all data points closest to the centroids.
+ 6. Reapeat 4-5 until the means/centroids are no longer changing as convergence has been achieved.
+ 
+ 
+ + We need to preprocess the data such that variables have a relative unit. This is because distances will be computed using sevarla variables.
+
+```{r}
+#load inbuilt data
+data("USArrests")
+#remove NAs
+df <- na.omit(USArrests)
+#scaling/standardizing: Variables are now under similar unit 
+df <- scale(USArrests)
+```
+
+To establish observations that can be grouped together, distances are computed between a pair of observations. The distance is called euclidean distance.
+
+```{r}
+# Subset of the data
+set.seed(123)
+ # Take 15 random rows
+df <- USArrests %>% sample_n(15)
+ # Subset the 15 rows
+df.scaled <- scale(df) # Standardize the variables
+```
+
+
+```{r}
+#euclidean distance
+distances<- get_dist(df, method = "euclidean",stand = TRUE)
+
+```
+
+```{r}
+#visualize distance matrice
+fviz_dist(distances)
+```
+
+Red: high similarity (ie: low dissimilarity) | Blue: low similarity. 
+
+Determining optimal number of clusters
+The optimal number of clusters is somehow subjective and depends on the method used for measuring similarities and the parameters used for partitioning.
+These methods include direct methods and statistical testing methods:
++ Direct methods: elbow and silhouette, consists of optimizing a criterion, such as the within cluster sums of squares or the average silhouette
+
++ Statistical testing methods: consists of comparing evidence against null hypothesis. An example is the gap statistic
+
++ majority rule
+
+# Elbow method: 
+Elbow method looks at the total WSS (total intra-cluster variation) as a function of the number of clusters: One should choose a number of clusters so that adding another cluster doesn’t improve much better the total WSS
+
+This is done by plotting wss agaings clusters  and the location of a bend (knee) in the plot is generally considered as an
+indicator of the appropriate number of clusters
+```{r}
+fviz_nbclust(df, kmeans, method = "wss") +
+geom_vline(xintercept = 3, linetype = 2)+
+labs(subtitle = "Elbow method")
+```
+
+# Silhouette method:
+It measures the quality of a clustering.That is, it determines how well each data point lies within its cluster. A high average
+silhouette width indicates a good clustering.
+
+This is done by plotting average silhouttes against the clusters and the number of clusters with the highest av. sil is considered optimal 
+```{r}
+
+fviz_nbclust(df, kmeans, method = "silhouette")+
+labs(subtitle = "Silhouette method")
+```
+
+#Gap statistic method
+The gap statistic compares the total within intra-cluster variation for different values of k with their expected values under null reference distribution of the data. The estimate of the optimal clusters will be value that maximize the gap statistic (i.e, that yields the largest gap statistic). This means that the clustering structure is far away from the random uniform distribution of points.
+```{r}
+
+fviz_nbclust(df, kmeans, nstart = 25, method = "gap_stat", nboot = 50)+
+labs(subtitle = "Gap statistic method")
+
+```
+# Majority Rule
+It provides 30 indices for determining the relevant number of clusters and proposes to users the best clustering scheme from the diferent results obtained by varying all combinations of number of clusters, distance measures, and clustering methods
+```{r}
+nb <- NbClust(df, distance = "euclidean", min.nc = 2,
+max.nc = 10, method = "kmeans")
+fviz_nbclust(nb)
+```
+
+# Computing k-means clustering
+```{r}
+# Compute k-means with k = 3
+set.seed(123)
+km.res <- kmeans(df, 3, nstart = 25)
+df <- df %>% 
+  mutate(Cluster=km.res$cluster)
+```
+
+
+
+
+# Cluster Validation Statistics
+This helps to evaluate goodness of clustering results
+Dunn Index: If the data set contains compact and well-separated clusters, the diameter of the clusters is expected to be small and the distance between the clusters is expected to be large. Thus, Dunn index should be maximized.
+```{r}
+km_stats <- cluster.stats(dist(df), km.res$cluster)
+km_stats$dunn
+# Dun index
+```
+
+# Choosing the Best Clustering Algorithms
+Based on the data structure, Which algorithm would yield the most? valid clusters?
+```{r}
+clmethods <- c("hierarchical","kmeans","pam")
+intern <- clValid(df, nClust = 2:3, clMethods = clmethods, validation = "internal")
+# Summary
+summary(intern)
+```
+
+# Cluster Profiling
+
+##Visualizing k-means clusters
+Now, we want to visualize the data in a scatter plot with coloring each data point according to its cluster assignment.
+The problem is that the data contains more than 2 variables and the question is what variables to choose for the xy scatter plot.
+A solution is to reduce the number of dimensions by applying a dimensionality reduction algorithm, such as Principal Component Analysis (PCA), that operates on the four variables and outputs two new variables (that represent the original variables)
+that you can use to do the plot
+```{r}
+#more comprehensive
+fviz_cluster(km.res, data = df,
+  palette = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+  ellipse.type = "euclid", # Concentration ellipse
+  star.plot = TRUE, # Add segments from centroids to items
+  repel = TRUE, # Avoid label overplotting (slow)
+  ggtheme = theme_minimal()
+)
+```
+```{r}
+library(vtable)
+df %>% sumtable(group = "Cluster",group.test = T,out="browser")
+
+df %>% rownames_to_column(var="City") %>% 
+  group_by(Cluster,City) %>% 
+  summarise(Count=n())
+```
+
+Notes:
+We can conclude we have 3 clusters ie
+1. High rate of crimes cluster constituting of states such as Arizona, California, Florida, Nevada and New Mexico
+2. Moderate rate of crime cluster constituting of Indiana, Iowa,Montana, Nebraska and W. Virginia
+3. Low rate of crime cluster comprising of Missouri,Oregon,Tennesse and Texas
