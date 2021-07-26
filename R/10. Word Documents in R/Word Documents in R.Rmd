@@ -1,0 +1,139 @@
+---
+title: "Word Documents"
+author: "Peter Kariuki"
+date: "7/26/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+# Install packages and load
+rm(list=ls())
+PackageNames <- c("stargazer","tidyverse","flextable","ggmap","scales","export","png","knitr")
+for(i in PackageNames){
+  if(!require(i, character.only = T)){
+    install.packages(i, dependencies = T)
+    require(i, character.only = T)
+  }
+}
+```
+
+
+```{r}
+WordTable <- function(df,caption){
+  require(flextable)
+  FitFlextableToPage <- function(ft, pgwidth = 6){
+
+  ft_out <- ft %>% autofit()
+
+  ft_out <- width(ft_out, width = dim(ft_out)$widths*6.5/(flextable_dim(ft_out)$widths))
+  return(ft_out)
+  }
+  flextable(df) %>% set_caption(caption = caption) %>% autofit() %>% FitFlextableToPage()
+}
+
+```
+
+## Diagnosing variables
+
+```{r}
+library(dlookr)
+library(car)
+diagnose(Prestige) %>% WordTable(caption = "Table1: Diagnose")
+
+```
+
+## Diagnosing Numeric Variables
+
+```{r}
+diagnose_numeric(Prestige) %>% WordTable(caption = "Table2: Diagnose Numeric")
+
+```
+
+## Diagnosing Categorical Variables
+
+```{r}
+diagnose_category(Prestige)%>% WordTable(caption = "Table3: Diagnose Categorical")
+
+```
+
+## Diagnosing Outliers
+
+```{r}
+diagnose_outlier(Prestige)%>% WordTable(caption = "Table4: Diagnose Outliers")
+
+```
+
+## Descriptive Stats on Numeric Variables
+
+```{r}
+describe(Prestige)%>% 
+  select(variable,n,mean,sd,IQR,p50,p75) %>% 
+  WordTable(caption = "Table5: Sumaries")
+
+```
+
+## Diagnosing Normality 
+
+```{r}
+normality(Prestige)%>% WordTable(caption = "Table6: Normality Test")
+
+```
+
+## Correlation Tests
+
+```{r}
+Prestige %>%
+  correlate(-type) %>%
+  filter(as.integer(var1) > as.integer(var2)) %>% 
+  mutate_if(is.numeric, round,digits=2) %>% 
+  spread(var2,coef_corr,fill = "")%>% WordTable(caption = "Table7: Correlations")
+```
+
+```{r}
+iris %>% 
+  vtable::sumtable(group = "Species",group.test = T,out = "return") %>%
+  as.tibble(.name_repair = ~ c("Variable","N_Setosa", "Mean_Sotosa","SD_Setosa","N_versicolor", "Mean_versicolor","SD_versicolor","N_virginica", "Mean_virginica","SD_virginica","Test")) %>% 
+  select(Variable,Mean_Sotosa,Mean_versicolor,Mean_virginica,Test) %>% 
+  WordTable(caption = "Table8: Other Tests")
+```
+
+```{r}
+
+ans <- sample(c("Yes", "No", "N/A"),
+              size = 100, replace = TRUE,
+              prob = c(0.4, 0.35, 0.25))
+gen <- sample(c("Male", "Female"),
+              size = 100, replace = TRUE)
+# Change the levels of the variable
+# so "Yes" appears first in the legend
+ans <- factor(ans, levels = c("Yes", "No", "N/A"))
+
+# Data frame
+data <- data.frame(answer = ans,
+                   gender = gen)
+
+# Data transformation
+df <- data %>% 
+  group_by(answer) %>% # Variable to be transformed
+  count() %>% 
+  ungroup() %>% 
+  mutate(perc = `n` / sum(`n`)) %>% 
+  arrange(perc) %>%
+  mutate(labels = scales::percent(perc))
+
+ggplot(df, aes(x = "", y = perc, fill = answer)) +
+  geom_col(color = "black") +
+  geom_label(aes(label = labels), color = c(1, "white", "white"), position = position_stack(vjust = 0.5),          show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Answer")) +
+  scale_fill_viridis_d() +
+  coord_polar(theta = "y") + 
+  theme_void()
+export::graph2png(file="C:\\Users\\HP\\Documents\\Self Development\\Training-Development\\R\\10. Word Documents in R\\Word-Documents-in-R.png")
+include_graphics("C:\\Users\\HP\\Documents\\Self Development\\Training-Development\\R\\10. Word Documents in R\\Word-Documents-in-R.png")
+```
+
