@@ -1,0 +1,149 @@
+---
+title: "Frequency Tables"
+author: "Peter Kariuki"
+date: "8/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Install packages and load
+rm(list=ls())
+PackageNames <- c("stargazer","tidyverse","janitor","kableExtra","flextable")
+for(i in PackageNames){
+  if(!require(i, character.only = T)){
+    install.packages(i, dependencies = T)
+    require(i, character.only = T)
+  }
+}
+```
+
+```{r}
+humans <- starwars %>%
+  filter(species == "Human")
+```
+
+## One way
+```{r}
+ humans %>%
+  tabyl(eye_color) %>% 
+  kable(caption = "Simple Table") %>% 
+  kable_styling("hover",full_width = F)
+```
+
+```{r}
+# it shows the missings
+x <- c("big", "big", "small", "small", "small", NA)
+tabyl(x) %>% 
+  kable(caption = "Simple Table with Missings") %>% 
+  kable_styling("hover",full_width = F)
+```
+
+```{r}
+humans %>%
+  tabyl(eye_color) %>%  
+  adorn_totals("row") %>% # add row totals
+  adorn_pct_formatting() %>% 
+  kable(caption = "Simple Table with Row totals") %>% 
+  kable_styling("hover",full_width = F)
+```
+
+## two way
+```{r}
+t2 <- humans %>%
+  tabyl(gender, eye_color)
+```
+
+```{r}
+t2 %>%
+  adorn_percentages("row") %>% # you can do col
+  adorn_pct_formatting(digits = 0) %>%
+  adorn_ns(position = "front") %>% 
+  kable(caption = "Within Gender") %>% 
+  kable_styling("hover",full_width = F)
+```
+
+## Three way
+```{r}
+t3 <- humans %>%
+  tabyl(eye_color, skin_color, gender)
+
+t3 
+```
+
+```{r}
+mytable <- xtabs(~ gender+eye_color+skin_color, data=humans)
+mytable %>% 
+  ftable() %>% as.data.frame() %>% 
+  spread(skin_color, Freq) %>% 
+  regulartable %>% merge_v(j = ~gender) %>% autofit()
+
+```
+
+```{r}
+library(vcd)
+head(Arthritis)
+```
+
+```{r}
+mytable <- xtabs(~ Treatment+Sex+Improved, data=Arthritis)
+mytable %>% 
+  ftable() %>% as.data.frame() %>% 
+  spread(Improved, Freq) %>% 
+  regulartable %>% merge_v(j = ~Treatment) %>% autofit() 
+```
+
+```{r}
+source("http://pcwww.liv.ac.uk/~william/R/crosstab.r")
+```
+
+```{r}
+ID <- seq(1:177)
+Age <- sample(c("0-15", "16-29", "30-44", "45-64", "65+"), 177, replace = TRUE)
+Sex <- sample(c("Male", "Female"), 177, replace = TRUE)
+Country <- sample(c("England", "Wales", "Scotland", "N. Ireland"), 177, replace = TRUE)
+Health <- sample(c("Poor", "Average", "Good"), 177, replace = TRUE)
+Survey <- data.frame(Age, Sex, Country, Health)
+head(Survey)
+```
+
+
+```{r}
+Survey %>% 
+  group_by(Age,Sex,Health) %>% 
+  count() %>% 
+  pivot_wider(names_from = Health,values_from = n) %>% 
+  regulartable %>% 
+  merge_v(j=~Age) %>% autofit() %>% 
+  set_caption(caption = "Table1 1 :Place Caption here")
+
+
+
+```
+
+```{r}
+# Total percentages (sums to 100 across entire table)
+crosstab(Survey, row.vars = c("Age", "Sex"), col.vars = "Health", type = "t")
+```
+
+```{r}
+# All margins...
+crosstab(Survey, row.vars = c("Age", "Sex"), col.vars = "Health", type = "f")  #By default addmargins=TRUE
+```
+
+```{r}
+# No margins...
+crosstab(Survey, row.vars = c("Age", "Sex"), col.vars = "Health", type = "f", addmargins = FALSE)
+```
+
+```{r}
+# Grand margins only...
+crosstab(Survey, row.vars = c("Age", "Sex"), col.vars = "Health", type = "f", subtotals = FALSE)
+```
+
+```{r}
+# Create a table with three row and one column variable
+t <- crosstab(Survey, row.vars = c("Age", "Sex", "Health"), col.vars = c("Country"), type = "f", addmargins = FALSE)
+```
+
