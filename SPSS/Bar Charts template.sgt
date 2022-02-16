@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<template SPSS-Version="1.4" date="2021-11-14" description="" selectPath="2 30 10 72 74 75 76 93 12 13 17 18 20 29 33 47 62 63 66 70 36 38 43 68 69 45 46 " xmlns="http://xml.spss.com/spss/visualization" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xml.spss.com/spss/visualization http://xml.spss.com/spss/visualization/vizml-template-3.4.xsd">
+	<setAxisStyle categorical="true" role="x">
+		<axisLabelStyle>
+			<style color="#000000" color2="transparent" font-size="11pt" font-weight="bold" visible="true"/>
+		</axisLabelStyle>
+	</setAxisStyle>
+	<setAxisStyle categorical="false" role="y">
+		<axisLabelStyle>
+			<style color="#000000" color2="transparent" font-size="11pt" font-weight="bold" visible="true"/>
+		</axisLabelStyle>
+	</setAxisStyle>
+	<addFrame count="1" type="visualization">
+		<location bottom="500px" left="0px" right="625px" top="0px"/>
+		<style color="#ffffff" color2="transparent" number="0" visible="true"/>
+		<style font-family="SansSerif" font-size="8pt" number="1" pattern="0" stroke-linecap="butt" text-fit="true" visible="true"/>
+	</addFrame>
+	<setAxisOpposite categorical="false" opposite="false" role="y"/>
+	<setTranspose transpose="false"/>
+	<setAxisScale method="linear" role="y"/>
+	<setTickLabelFormat categorical="false" derived="false" role="y">
+		<format minimumFractionDigits="1" minimumIntegerDigits="0" suffix="%" useGrouping="false"/>
+	</setTickLabelFormat>
+	<setTickLabelAngle categorical="false" derived="false" role="y"/>
+	<setAxisMajorTicks>
+		<majorTicks categorical="false" delta="auto" derived="false" position="outside" role="y">
+			<markStyle>
+				<style color="#000000" stroke-width="1pt" visible="true"/>
+			</markStyle>
+			<tickLabelStyle>
+				<style color="#000000" font-size="8pt" visible="true"/>
+			</tickLabelStyle>
+		</majorTicks>
+	</setAxisMajorTicks>
+	<setAxisMargin categorical="false" role="y" upperMargin="5%"/>
+	<setAxisOpposite categorical="true" opposite="false" role="x"/>
+	<setAxisMajorTicks>
+		<majorTicks categorical="true" position="outside" role="x">
+			<markStyle>
+				<style color="#000000" stroke-width="1pt" visible="true"/>
+			</markStyle>
+			<tickLabelStyle>
+				<style color="#000000" font-size="8pt" visible="true"/>
+			</tickLabelStyle>
+		</majorTicks>
+	</setAxisMajorTicks>
+	<setTickLabelAngle categorical="true" role="x"/>
+	<setTickLabelFrequency categorical="true" role="x"/>
+	<setAxisMargin categorical="true" lowerMargin="5%" role="x" upperMargin="5%"/>
+	<addDataLabels colorByMarker="false" connectingLines="true" hidden="false" labelLocationHorizontal="center" labelLocationVertical="center" showCollidingLabels="false">
+		<style color="#000000" font-family="Times New Roman" font-size="12pt" font-style="regular" font-weight="regular" number="0" padding="2px" text-fit="false" visible="visible"/>
+		<style color="#ffffff" color2="#000000" number="1" visible="true"/>
+		<labeling variable="percent">
+			<format maximumFractionDigits="0" minimumFractionDigits="0" minimumIntegerDigits="0" scientific="false" suffix="%" useGrouping="false"/>
+		</labeling>
+	</addDataLabels>
+	<addFrame count="1" styleOnly="true" type="graph">
+		<style color="transparent" color2="transparent" visible="true"/>
+		<style color="#ffffff" color2="#000000" number="1" visible="true"/>
+	</addFrame>
+	<setStyle subtype="simple" type="bar">
+		<style color="#2eb848" color2="#000000" depth="75%" pattern="0" size="75%" visible="true"/>
+	</setStyle>
+	<setStyle subtype="simple" type="bar">
+		<style color="#2eb848" color2="#000000" depth="75%" number="0" pattern="0" size="75%" visible="true"/>
+	</setStyle>
+	<setStyle>
+		<style color="#000000" color2="#ffffff" font-family="Times New Roman" font-size="12pt" labelLocationHorizontal="center" labelLocationVertical="center" text-fit="false" visible="true"/>
+	</setStyle>
+</template>
