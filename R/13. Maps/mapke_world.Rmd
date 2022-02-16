@@ -1,0 +1,81 @@
+---
+title: "Untitled"
+author: "Peter Kariuki"
+date: "11/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(rnaturalearth)
+map <- ne_countries()
+names(map)[names(map) == "iso_a3"] <- "ISO3"
+names(map)[names(map) == "name"] <- "NAME"
+
+library(wbstats)
+indicators <- wbsearch(pattern = "pollution")
+
+
+d <- wb(
+  indicator = "EN.ATM.PM25.MC.M3",
+  startdate = 2016, enddate = 2016
+)
+
+
+
+d <- d %>% 
+  select(iso3c,iso2c,country,value) %>% 
+  mutate(cases=value*1000) 
+
+#d <- read_csv("C:\\Users\\HP\\Downloads\\Covid cases.csv")
+
+map$Cases <- d[match(map$ISO3, d$iso3c), "cases"]
+
+```
+
+
+```{r}
+library(leaflet)
+
+pal <- colorBin(
+  palette = "viridis", domain = map$Cases,
+  bins = seq(0, max(map$Cases, na.rm = TRUE) + 1000, by = 10000)
+)
+
+
+map$labels <- paste0(
+  "<strong> Country: </strong> ",
+  map$NAME, "<br/> ",
+  "<strong> Cases: </strong> ",
+  round(map$Cases), "<br/> "
+) %>%
+  lapply(htmltools::HTML)
+
+leaflet(map) %>%
+  addTiles() %>%
+  setView(lng = 0, lat = 30, zoom = 2) %>%
+  addPolygons(
+    fillColor = ~ pal(Cases),
+    color = "white",
+    fillOpacity = 0.7,
+    label = ~labels,
+    highlight = highlightOptions(
+      color = "black",
+      bringToFront = TRUE
+    )
+  ) %>%
+  leaflet::addLegend(
+    pal = pal, values = ~Cases,
+    opacity = 0.7, title = "Cases"
+  )
+```
+
+```{r}
+library(sf)
+mwi = read_sf('C:\\Users\\HP\\Downloads\\mwi_adm_nso_20181016_shp\\mwi_admbnda_adm2_nso_20181016.shp')
+```
+
